@@ -1,13 +1,42 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# pylint: disable=unused-variable
+
+# Owned
+__author__ = "Audrey Carval"
+__credits__ = ["Sébastien Brun", "Frédéric Spiers"]
+__license__ = "----"
+__date__ = "15/06/2021"
+__maintainers__ = ["Audrey Carval"]
+__email1__ = "carval.audrey@gmail.com"
+
+
+############################################################################
+################################## Import #################################
+############################################################################
 
 import os
 import sys
 import shutil
 import json
 import yaml
-import string
 import re
+import argparse
+
+
+############################################################################
+################################# Functions ################################
+############################################################################
 
 nl = '\n'
+
+def parse():
+    parser = argparse.ArgumentParser(description='Generate documentation from a tekton folder')
+    parser.add_argument('--dst-dir', nargs='?', type=str, const="./documenation", help="Folder's path where the documentation will be generated. If the folder already exist, the files inside will be deleted.")
+    requiredNamed = parser.add_argument_group('required named arguments')
+    requiredNamed.add_argument('--tekton-dir', type=str, help="Tekton's sources folder path", required=True)
+    args = parser.parse_args()
+    return args
 
 # Remove a given folder and its content
 def delete_folder(folder_path): 
@@ -73,7 +102,7 @@ def generate_mermaid_schema(documentation_file, tasks, kind = "tasks", next_titl
     documentation_file.write('```\n')
     next_title_number=next_title_number+1
     
-def generate_documentation(tekton_folder, destination_folder = "documentation"):
+def generate_documentation(tekton_folder, destination_folder):
     if not os.path.exists(tekton_folder):
         print(f"The folder {tekton_folder} does not exist")
         return
@@ -107,7 +136,7 @@ def generate_documentation(tekton_folder, destination_folder = "documentation"):
                         if kind == 'EventListener':
                             continue
 
-                        # Params section
+                        # Params table
                         documentation_file.write("----\n")
                         if params:
                             if kind == 'TriggerBinding':
@@ -116,7 +145,7 @@ def generate_documentation(tekton_folder, destination_folder = "documentation"):
                                 create_table(documentation_file, tekton_object_index, next_title_number, kind, name, params)
                             next_title_number=next_title_number+1
 
-                        # Result section
+                        # Result table
                         if results: 
                             documentation_file.write(f"### {str(next_title_number)} - {kind}'s output details{nl}{nl}")
                             documentation_file.write("| NAME   | DESCRIPTION |\n")
@@ -134,10 +163,21 @@ def generate_documentation(tekton_folder, destination_folder = "documentation"):
                         if len(tasks):
                             generate_mermaid_schema(documentation_file, tasks, "Tasks", next_title_number)
                         
-                        # Tasks mermaid schema
+                        # Steps mermaid schema
                         if len(steps):
                             generate_mermaid_schema(documentation_file, steps, "Steps", next_title_number, "env")    
                 except yaml.YAMLError as exc:
                     print(exc)
 
-generate_documentation(sys.argv[1], sys.argv[2])
+############################################################################
+################################### Main ###################################
+############################################################################
+
+def main(): 
+    args = parse()
+    tekton_folder = getattr(args, 'tekton_dir')
+    destination_folder = getattr(args, 'dst_dir')
+    generate_documentation(tekton_folder, destination_folder)
+
+if __name__ == "__main__":
+    main()
